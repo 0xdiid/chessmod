@@ -1,0 +1,124 @@
+diff --git a/engine/src/human.h b/engine/src/human.h
+index b298e96..e2d9df1 100644
+--- a/engine/src/human.h
++++ b/engine/src/human.h
+@@ -1,5 +1,9 @@
+ #include "search.h"
+ 
++#ifndef ACCUM_EST_MULT
++#define ACCUM_EST_MULT 4
++#endif
++
+ void multipv_search(Position &position, ThreadInfo &thread_info) {
+ 
+   thread_info.multipv = 5;
+@@ -24,6 +28,19 @@ void search_human(Position &position, ThreadInfo &thread_info) {
+ 
+   int starting_mat = material_eval(position);
+ 
++  // Plies into the game, counting the FEN's fullmove field, so a bare
++  // "position fen" in a fresh process is not treated as the opening.
++  int ply = thread_info.fen_ply + thread_info.game_ply - 6;
++
++  // The loss budget normally accumulates across moves in one process. Take it
++  // from Accum_Loss when given; otherwise draw a stateless estimate.
++  if (thread_info.accum_loss_override >= 0) {
++    thread_info.cp_accum_loss = thread_info.accum_loss_override;
++  } else if (ply >= 1) {
++    thread_info.cp_accum_loss =
++        dist(rd) % (ACCUM_EST_MULT * thread_info.cp_loss + 1);
++  }
++
+   multipv_search(position, thread_info);
+ 
+   Move best_move = thread_info.best_moves[0];
+@@ -36,7 +53,7 @@ void search_human(Position &position, ThreadInfo &thread_info) {
+     int m_diff = starting_mat - thread_info.pv_material[i];
+     int eval_diff = thread_info.best_scores[0] - thread_info.best_scores[i];
+ 
+-    if (thread_info.game_ply < 7 && eval_diff < 25 &&
++    if (ply < 1 && eval_diff < 25 &&
+         thread_info.best_scores[i] > -100 && i < 4) {
+       if (dist(rd) % 5 == i) {
+         best_move = thread_info.best_moves[i];
+@@ -44,7 +61,7 @@ void search_human(Position &position, ThreadInfo &thread_info) {
+       }
+     }
+ 
+-    if (thread_info.game_ply >= 7 && eval_diff > 0 &&
++    if (ply >= 1 && eval_diff > 0 &&
+         eval_diff < thread_info.cp_accum_loss + 10 &&
+         thread_info.best_scores[0] < 5000 && !sacrifice) {
+       best_move = thread_info.best_moves[i];
+@@ -64,9 +81,10 @@ void search_human(Position &position, ThreadInfo &thread_info) {
+   if (mistake) {
+     thread_info.cp_accum_loss -= mistake;
+   }
+-  if (thread_info.game_ply >= 7) {
++  if (ply >= 1) {
+     thread_info.cp_accum_loss += thread_info.cp_loss;
+   }
++  printf("info string accum_loss %i\n", thread_info.cp_accum_loss);
+ 
+   printf("bestmove %s\n", internal_to_uci(position, best_move).c_str());
+ }
+diff --git a/engine/src/position.h b/engine/src/position.h
+index b60d345..6668489 100644
+--- a/engine/src/position.h
++++ b/engine/src/position.h
+@@ -113,6 +113,7 @@ void print_board(
+ void set_board(Position &position, ThreadInfo &thread_info,
+                std::string f) { // Sets the board to a given fen.
+   std::memset(&position, 0, sizeof(Position));
++  thread_info.fen_ply = 0;
+ 
+   generate_bb(f, position);
+ 
+@@ -260,6 +261,11 @@ void set_board(Position &position, ThreadInfo &thread_info,
+   }
+ 
+   position.halfmoves = halfmoves;
++
++  int fullmove;
++  if (fen >> fullmove) {
++    thread_info.fen_ply = std::max(0, (fullmove - 1) * 2 + position.color);
++  }
+ }
+ 
+ std::string export_fen(const Position &position,
+diff --git a/engine/src/uci.h b/engine/src/uci.h
+index 471c5ee..6bcf6c9 100644
+--- a/engine/src/uci.h
++++ b/engine/src/uci.h
+@@ -211,6 +211,7 @@ void uci(ThreadInfo &thread_info, Position &position) {
+              "option name SyzygyPath type string default null\n"
+              "option name MultiPV type spin default 1 min 1 max 255\n"
+              "option name Skill_Level type spin default 21 min 1 max 21\n"
++             "option name Accum_Loss type spin default -1 min -1 max 100000\n"
+              "option name Move_Overhead type spin default 50 min 0 max 5000\n"
+              "option name UCI_Chess960 type check default false\n");
+ 
+@@ -311,6 +312,10 @@ void uci(ThreadInfo &thread_info, Position &position) {
+         }
+       }
+ 
++      else if (name == "Accum_Loss") {
++        thread_info.accum_loss_override = value;
++      }
++
+       else if (name == "MultiPV") {
+         thread_info.multipv = value;
+       }
+diff --git a/engine/src/utils.h b/engine/src/utils.h
+index 345e086..c780657 100644
+--- a/engine/src/utils.h
++++ b/engine/src/utils.h
+@@ -62,6 +62,8 @@ struct ThreadInfo {
+   bool is_human = false;
+   int cp_accum_loss = 0;
+   int cp_loss = 0;
++  int accum_loss_override = -1; // -1: stateless estimate
++  int fen_ply = 0;               // plies played before the FEN position
+ 
+   std::array<Move, MaxSearchDepth * MaxSearchDepth> pv;
+   std::array<int, 5> pv_material;

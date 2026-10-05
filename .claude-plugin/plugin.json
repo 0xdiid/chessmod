@@ -1,0 +1,7 @@
+{
+  "name": "chessmod",
+  "version": "0.1.0",
+  "description": "Play a rated ladder of chess bots above the prompt while Claude works",
+  "author": { "name": "Will Drach" },
+  "types": "./types/index.d.ts"
+}
