@@ -42,11 +42,15 @@ export const drawBoard = (Box: Make, Text: Make, props: BoardProps, selected?: s
   const pad = ' '.repeat(Math.floor((w - 1) / 2))
   const blank = ' '.repeat(w)
 
+  // The desktop's code font draws the glyphs wider than a cell: fixed-width boxes keep every column aligned.
+  const cell = (width: number, child: unknown, backgroundColor?: string) =>
+    Box({ width, overflow: 'hidden', backgroundColor, children: child })
+
   const lines = []
   for (let r = 0; r < 8; r++) {
     for (let line = 0; line < h; line++) {
       const label = line === glyphRow ? `${props.flip ? r + 1 : 8 - r} ` : '  '
-      const cells = [Text({ dimColor: true, children: label })]
+      const cells = [cell(LABEL, Text({ dimColor: true, children: label }))]
       for (let c = 0; c < 8; c++) {
         const name = nameAt(r, c, props.flip)
         const piece = props.squares[(8 - Number(name[1])) * 8 + FILES.indexOf(name[0]!)] ?? ''
@@ -56,19 +60,28 @@ export const drawBoard = (Box: Make, Text: Make, props: BoardProps, selected?: s
         if (name === selected) bg = '#7fa650'
         const glyph = piece ? GLYPHS[piece[1]!.toLowerCase()] : targets.has(name) ? '•' : ' '
         cells.push(
-          Text({
-            backgroundColor: bg,
-            color: piece ? (piece[0] === 'w' ? '#ffffff' : '#000000') : '#3d5a2a',
-            bold: true,
-            children: line === glyphRow ? `${pad}${glyph}${' '.repeat(w - pad.length - 1)}` : blank,
-          }),
+          cell(
+            w,
+            Text({
+              backgroundColor: bg,
+              color: piece ? (piece[0] === 'w' ? '#ffffff' : '#000000') : '#3d5a2a',
+              bold: true,
+              children: line === glyphRow ? `${pad}${glyph}${' '.repeat(w - pad.length - 1)}` : blank,
+            }),
+            bg,
+          ),
         )
       }
       lines.push(Box({ flexDirection: 'row', children: cells }))
     }
   }
   const files = (props.flip ? 'hgfedcba' : FILES).split('')
-  lines.push(Text({ dimColor: true, children: ' '.repeat(LABEL) + files.map(f => `${pad}${f}`.padEnd(w)).join('') }))
+  lines.push(
+    Box({
+      flexDirection: 'row',
+      children: [cell(LABEL, Text({ children: ' '.repeat(LABEL) })), ...files.map(f => cell(w, Text({ dimColor: true, children: `${pad}${f}`.padEnd(w) })))],
+    }),
+  )
   return Box({ flexDirection: 'column', children: lines })
 }
 

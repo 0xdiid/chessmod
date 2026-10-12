@@ -503,7 +503,7 @@ export const register: Register = on => {
     const size = COMPACT
     const props = boardProps(board, g, !myTurn || thinking, size)
     const boardView =
-      e.surface === 'terminal'
+      e.surface === 'terminal' || e.surface === 'desktop'
         ? (() => {
             const { Client } = $.ui.resolve(e)
             return <Client key="board" module="./board.tsx" props={props} width={boardColumns(size)} height={boardRows(size)} />
