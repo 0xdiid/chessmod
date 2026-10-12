@@ -83,22 +83,16 @@ Clicking the board needs Claude Code's fullscreen terminal layout, which is wher
 
 ## Install
 
-1. Clone this repo:
+1. In Claude Code, add this repo as a marketplace and install the plugin:
 
-   ```sh
-   git clone https://github.com/0xdiid/chessmod ~/Git/chessmod
+   ```
+   /plugin marketplace add 0xdiid/chessmod
+   /plugin install chessmod@chessmod
    ```
 
-2. Load it as a plugin, using one of these:
+   `/plugin marketplace update chessmod` pulls new versions later.
 
-   - For one terminal session: `claude --plugin-dir ~/Git/chessmod`
-   - For every session, including the desktop app: add the folder to `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json`:
-
-     ```json
-     { "env": { "CLAUDE_CODE_PLUGIN_DIRS": "~/Git/chessmod" } }
-     ```
-
-3. Start a task in Claude Code. A setup screen appears above the prompt; click **Set up**. It downloads about 160MB the first time:
+2. Start a task in Claude Code. A setup screen appears above the prompt; click **Set up**. It downloads about 160MB the first time:
 
    | Piece | Source | Size |
    | --- | --- | --- |
@@ -153,6 +147,8 @@ tsconfig.json                extends the types Claude Code generates
 ```
 
 ## Development
+
+To work on a clone, load it directly instead of installing: `claude --plugin-dir ~/Git/chessmod`, or add the folder to `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json` to load it in every session.
 
 Run the checks from the repo root:
 

@@ -1,0 +1,5 @@
+{
+  "name": "chessmod",
+  "owner": { "name": "Diid" },
+  "plugins": [{ "name": "chessmod", "source": "./" }]
+}
