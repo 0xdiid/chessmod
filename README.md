@@ -3,6 +3,13 @@
 Play rated chess against bots inside Claude Code while Claude works. The board sits just above the prompt while Claude is busy and steps aside when Claude needs you.
 
 ```
+/plugin marketplace add 0xdiid/chessmod
+/plugin install chessmod@chessmod
+```
+
+Then start a task and click **Set up** when the board appears. See [Install](#install) for details.
+
+```
 🪄 Tal 2250 · in his style      8  ♜  ♞  ♝  ♛  ♚  ♝     ♜
 ♙                               7  ♟  ♟  ♟     ♟  ♟  ♟  ♟
 "Be more careful next time"     6                 ♞
